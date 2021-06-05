@@ -1,19 +1,4 @@
 #!/usr/bin/python
-# 
-# Copyright (C) 2015 ETH Zurich, University of Bologna and GreenWaves Technologies
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 
 # ////////////////////////////////////////////////////////////////////////////////
 # // Company:        Multitherman Laboratory @ DEIS - University of Bologna     //
@@ -149,19 +134,36 @@ rom_file  = open(outfile, 'w')
 vlog_file = open("boot_code.sv",  'w')
 
 # prepare file
-vlog_file.write("""
-module boot_code
-(
-    input  logic        CLK,
-    input  logic        RSTN,
 
-    input  logic        CSN,
-    input  logic [8:0]  A,
-    output logic [63:0] Q
-  );
+if archi in [ 'gap9', 'vega', 'wolfe', 'quentin', 'devchip', 'pulp', 'pulpissimo']:
+    vlog_file.write("""
+    module boot_code
+    (
+        input  logic        CLK,
+        input  logic        RSTN,
 
-  const logic [63:0] mem[0:%d] = {
-""" % (rom_size-1));
+        input  logic        CSN,
+        input  logic [8:0]  A,
+        output logic [31:0] Q
+      );
+
+      const logic [31:0] mem[0:%d] = {
+    """ % (rom_size-1));
+else:
+    vlog_file.write("""
+    module boot_code
+    (
+        input  logic        CLK,
+        input  logic        RSTN,
+
+        input  logic        CSN,
+        input  logic [8:0]  A,
+        output logic [63:0] Q
+      );
+
+      const logic [63:0] mem[0:%d] = {
+    """ % (rom_size-1));
+
 
 ###############################################################################
 # write the stimuli
@@ -185,19 +187,24 @@ for addr in sorted(slm_dict.keys()):
         if is64:
             if((addr%2) == 0):
                 data_even = data
+                if archi in [ 'gap9', 'vega', 'wolfe', 'quentin', 'devchip', 'pulp', 'pulpissimo']:
+                   vlog_file.write("    32'h%s,\n" % (data)) 
             else:
                 data_odd  = data
-                if archi == 'GAP': rom_file.write("@%x %s%s\n" % ((addr & 0xffff) / 2, data_odd, data_even))
+                if archi == 'GAP':
+                    rom_file.write("@%x %s%s\n" % ((addr & 0xffff) / 2, data_odd, data_even))
+                    vlog_file.write("    64'h%s%s,\n" % (data_odd, data_even))
                 elif archi in [ 'gap9', 'vega', 'wolfe', 'quentin', 'devchip', 'pulp', 'pulpissimo']:
                     rom_file.write("{0:032b}\n" .format(int('0x' + data_even, 16)))
                     rom_file.write("{0:032b}\n" .format(int('0x' + data_odd,  16)))
                     #rom_file.write("@%x %s\n" % ((addr & 0xffff)-1, data_even))
                     #rom_file.write("@%x %s\n" % ((addr & 0xffff), data_odd))
+                    vlog_file.write("    32'h%s,\n" % (data)) 
                 elif archi == 'vivosoc3':
                     rom_file.write("@%x %s\n" % ((addr & 0xffff)-1, data_even))
                     rom_file.write("@%x %s\n" % ((addr & 0xffff), data_odd))
-                else: rom_file.write("%s%s\n" % (data_odd, data_even))
-                vlog_file.write("    64'h%s%s,\n" % (data_odd, data_even))
+                    rom_file.write("%s%s\n" % (data_odd, data_even))
+                
         else:
             if((addr%2) == 0):
                 data_even = data
