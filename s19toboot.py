@@ -204,7 +204,7 @@ for addr in sorted(slm_dict.keys()):
                     rom_file.write("@%x %s\n" % ((addr & 0xffff)-1, data_even))
                     rom_file.write("@%x %s\n" % ((addr & 0xffff), data_odd))
                     rom_file.write("%s%s\n" % (data_odd, data_even))
-                
+                    vlog_file.write("    64'h%s%s,\n" % (data_odd, data_even))
         else:
             if((addr%2) == 0):
                 data_even = data
